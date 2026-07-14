@@ -795,8 +795,13 @@ function renderKPI(){
   const tierCount={}; all.forEach(r=>tierCount[r.tier]=(tierCount[r.tier]||0)+1);
   document.getElementById('c-tiers').innerHTML=Object.entries(tierCount).map(([t,n])=>`<span>${t} ${n}</span>`).join('');
   // total follower across all markets incl pending (from kpi table)
-  let totalFol=sum(all,'follower');
-  STATE.kpi.forEach(k=>{ if(!all.some(r=>r.location===k[0])) totalFol+=k[1]||0; });
+  // Combined follower base: prefer the committed follower base from the KPI table
+  // (Bangkok 1,496,300 + Chiang Mai 291,800 + Chon Buri 405,100 = 2,193,200).
+  // Any market with rows but no KPI entry falls back to the sum of its creators' followers.
+  let totalFol=0;
+  const kpiMarkets=new Set(STATE.kpi.map(k=>k[0]));
+  STATE.kpi.forEach(k=>{ totalFol+=k[1]||0; });
+  all.forEach(r=>{ if(!kpiMarkets.has(r.location)) totalFol+=r.follower||0; });
   document.getElementById('c-fol').innerHTML=fmtK(totalFol);
   document.getElementById('c-budget').innerHTML=`฿${fmt(sum(all,'budget'))}`;
   document.getElementById('c-budget-note').innerHTML=`<span class="lang-en">Boost on ${all.filter(r=>r.budget>0).length} clips</span><span class="lang-th">Boost ${all.filter(r=>r.budget>0).length} คลิป</span>`;
