@@ -146,6 +146,24 @@ html[data-lang="th"] .hero h1 .sub2{font-family:'Prompt';font-style:normal;font-
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
 .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 
+/* KPI vs Actual strip inside each location group */
+.kpi-strip{background:var(--cb);border:1px solid var(--ln);border-radius:12px;padding:14px 16px;margin:0 0 16px}
+.ks-title{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--caramel-d);margin-bottom:11px}
+.ks-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.ks-item{min-width:0}
+.ks-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px}
+.ks-lab{font-size:12px;font-weight:600;color:var(--ink2)}
+.ks-pct{font-size:11px;font-weight:700;padding:2px 8px;border-radius:100px;white-space:nowrap}
+.ks-pct.over{background:var(--okbg);color:var(--ok)}
+.ks-pct.under{background:var(--badbg);color:var(--bad)}
+.ks-nums{font-family:'Prompt';font-size:13.5px;color:var(--ink);margin-bottom:6px}
+.ks-nums b{font-weight:600}
+.ks-vs{font-size:11.5px;color:var(--mu)}
+.ks-bar{height:6px;background:var(--cream2);border-radius:100px;overflow:hidden}
+.ks-fill{height:100%;border-radius:100px;background:var(--gold-grad);transition:width .8s ease}
+.ks-fill.over{background:linear-gradient(90deg,var(--ok),#66BB6A)}
+@media(max-width:760px){.ks-grid{grid-template-columns:1fr;gap:12px}}
+
 /* sort + table */
 .group-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-bottom:14px;margin-bottom:6px;border-bottom:2px solid var(--ln)}
 .group-title{display:flex;align-items:center;gap:11px}
@@ -876,6 +894,7 @@ function renderOverall(){
           <div class="gstat"><span class="l">ER</span><span class="v">${pct(gER)}</span></div>
         </div>
       </div>
+      ${kpiStrip(m)}
       <div style="overflow-x:auto"><table class="kol-table">
         <thead><tr>
           <th>#</th><th>KOL</th><th>Tier</th><th>Reach</th><th>Impression</th><th>View</th>
@@ -886,6 +905,32 @@ function renderOverall(){
   }).join('');
   syncLang();
   applyKolPhotos();
+}
+
+/* KPI vs Actual strip for one market (uses full market data, not the tier filter) */
+function kpiStrip(m){
+  const k=STATE.kpi.find(x=>x[0]===m);
+  if(!k) return '';
+  const mr=STATE.rows.filter(r=>r.location===m);
+  const items=[
+    {lab:{en:'Reach',th:'Reach'}, kpi:k[4], act:sum(mr,'reach')},
+    {lab:{en:'Impression',th:'Impression'}, kpi:k[2], act:sum(mr,'impression')},
+    {lab:{en:'View',th:'View'}, kpi:k[3], act:sum(mr,'view')},
+  ];
+  return `<div class="kpi-strip">
+    <div class="ks-title"><span class="lang-en">KPI vs Actual · ${locLabel(m,'en')}</span><span class="lang-th">KPI เทียบผลจริง · ${locLabel(m,'th')}</span></div>
+    <div class="ks-grid">${items.map(it=>{
+      const ratio=it.kpi?it.act/it.kpi:null;
+      const over=ratio!=null&&ratio>=1;
+      const w=ratio!=null?Math.min(ratio*100,100):0;
+      return `<div class="ks-item">
+        <div class="ks-row"><span class="ks-lab"><span class="lang-en">${it.lab.en}</span><span class="lang-th">${it.lab.th}</span></span>
+          ${ratio!=null?`<span class="ks-pct ${over?'over':'under'}">${over?'▲':'▼'} ${(ratio*100).toFixed(0)}%</span>`:'<span class="ks-pct under">—</span>'}</div>
+        <div class="ks-nums"><b>${fmt(it.act)}</b> <span class="ks-vs">/ ${fmt(it.kpi)}</span></div>
+        <div class="ks-bar"><div class="ks-fill ${over?'over':''}" style="width:${w}%"></div></div>
+      </div>`;
+    }).join('')}</div>
+  </div>`;
 }
 </script>
 
